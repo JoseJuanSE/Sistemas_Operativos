@@ -99,7 +99,7 @@ void insertBefore(List* list, ListElement* next, ListEntry table_index, ListEntr
 }
 
 ListElement* get(List* list, int index){
-    if(index >= 0 && index < list->size && !isEmpty(list)) {
+    if(index < 0 || index >= list->size || isEmpty(list)) {
         puts("No existe el elemento");
         return NULL;
     }
@@ -115,24 +115,21 @@ ListElement* get(List* list, int index){
 }
 
 void insert(List* list, ListEntry table_index, ListEntry content, int index){
-    if(index >= 0 && index < list->size && !isEmpty(list)) {
+    ListElement *prev;
+    if((prev = get(list, index))){
+        ListElement *element = createElement(table_index, content);
+        insertAfter(list, prev, table_index, content);
+    } else 
         puts("Pocisión inválida");
-        return;
-    }
-    ListElement* prev = get(list, index), *element = createElement(table_index, content);
-    insertAfter(list, prev, table_index, content);
 }
 
 void set(List* list, int index, ListEntry table_index, ListEntry content) {
-    if(index >= 0 && index < list->size && !isEmpty(list)) {
+    ListElement* aux;
+    if((aux = get(list, index))) {
+        aux->table_index = table_index;
+        aux->content = content;
+    } else 
         puts("Pocisión inválida");
-        return;
-    }
-    ListElement* aux = get(list, index), *element = createElement(table_index, content);
-    element->next = aux->next;
-    element->prev = aux->prev;
-    element->next->prev = element->prev->next = element;
-    free(aux);
 }
 
 int indexOf(List * list, ListElement* element) {
@@ -158,7 +155,7 @@ void removeElement(List* list, ListElement* element) {
 }
 
 void removeAt(List* list, int index){
-    if(index >= 0 && index < list->size && !isEmpty(list)) {
+    if(index < 0 || index >= list->size || isEmpty(list)) {
         puts("No existe el elemento");
         return;
     }
@@ -180,10 +177,10 @@ void printList(List* list){
     }
     ListElement* element = list->head;
     while (element->next) {  
-        printf("|%d\t|%d\t|\n", element->table_index, element->content);
+        element->content == 255 ? printf("|%d\t\t|-\t\t|\n", element->table_index) : printf("|%d\t\t|%d\t\t|\n", element->table_index, element->content);
         element = element->next;
     }
-    printf("|%d\t|%d\t|\n", element->table_index, element->content);
+    element->content == 255 ? printf("|%d\t\t|-\t\t|\n", element->table_index) : printf("|%d\t\t|%d\t\t|\n", element->table_index, element->content);
 }
 
 void clearList(List* list) {
