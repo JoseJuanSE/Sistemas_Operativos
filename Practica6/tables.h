@@ -180,21 +180,33 @@ FrameListElement* createFrameElement(FrameIndex table_index, PageIndex content) 
     return element;
 }
 
-void addPage(PageList* list, PageIndex table_index, FrameIndex content, Valid valid) {
-    PageListElement* element = createPageElement(table_index, content, valid);
-    element->next = list->head;
-    if(!isEmptyPages(list))
-        list->head->prev = element;
-    list->head = element;
+void appendPage(PageList* list, PageIndex table_index, FrameIndex content, Valid valid) {
+    PageListElement* element = createPageElement(table_index, content, valid), *last = list->head;
+    if(isEmptyPages(list)){
+        element->prev = NULL;
+        list->head = element;
+        ++list->size;
+        return;
+    }
+    while(last->next)
+        last = last->next;
+    last->next = element;
+    element->prev = last;
     ++list->size;
 }
 
-void addFrame(FrameList* list, FrameIndex table_index, PageIndex content) {
-    FrameListElement* element = createFrameElement(table_index, content);
-    element->next = list->head;
-    if(!isEmptyFrames(list))
-        list->head->prev = element;
-    list->head = element;
+void appendFrame(FrameList* list, FrameIndex table_index, PageIndex content) {
+    FrameListElement* element = createFrameElement(table_index, content), *last = list->head;
+    if(isEmptyFrames(list)){
+        element->prev = NULL;
+        list->head = element;
+        ++list->size;
+        return;
+    }
+    while(last->next)
+        last = last->next;
+    last->next = element;
+    element->prev = last;
     ++list->size;
 }
 
@@ -249,10 +261,10 @@ void printPageList(PageList* list){
     PageListElement* element = list->head;
     printf("\nTabla de páginas en el disco.\n|Page_index\t|Frame_index\t|Valid\t|\n");
     while (element->next) {  
-        printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, element->table_index.d, pageIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, frameIndexToUChar(&element->content), element->valid.a);
+        printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.d, element->table_index.c, element->table_index.b, element->table_index.a, pageIndexToUChar(&element->table_index), element->content.c, element->content.b, element->content.a, frameIndexToUChar(&element->content), element->valid.a);
         element = element->next;
     }
-    printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, element->table_index.d, pageIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, frameIndexToUChar(&element->content), element->valid.a);
+    printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.d, element->table_index.c, element->table_index.b, element->table_index.a, pageIndexToUChar(&element->table_index), element->content.c, element->content.b, element->content.a, frameIndexToUChar(&element->content), element->valid.a);
     element = element->next;
 }
 
@@ -264,10 +276,10 @@ void printFrameList(FrameList* list){
     FrameListElement* element = list->head;
     printf("\nTabla de marcos de página en memoria.\n|Frame_index\t|Page_index\t|\n");
     while (element->next) {  
-        printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, frameIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, element->content.d, pageIndexToUChar(&element->content));
+        printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.c, element->table_index.b, element->table_index.a, frameIndexToUChar(&element->table_index), element->content.d, element->content.c, element->content.b, element->content.a, pageIndexToUChar(&element->content));
         element = element->next;
     }
-    printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, frameIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, element->content.d, pageIndexToUChar(&element->content));
+    printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.c, element->table_index.b, element->table_index.a, frameIndexToUChar(&element->table_index), element->content.d, element->content.c, element->content.b, element->content.a, pageIndexToUChar(&element->content));
     element = element->next;
 }
 
