@@ -36,7 +36,7 @@ typedef struct Address {
     unsigned int j:1;
     unsigned int k:1;
     unsigned int l:1;
-} Adress;
+} Address;
 
 /* 1 bit present/ausent in memory */
 typedef struct Valid {
@@ -60,22 +60,48 @@ FrameIndex ucharToFrameIndex(unsigned char uc) {
     return frame_index;
 }
 
+Address ushortToAddress(unsigned short *us) {
+    Address addr;
+    addr.a = *us;
+    addr.b = (*us) >> 1;
+    addr.c = (*us) >> 2;
+    addr.d = (*us) >> 3;
+    addr.e = (*us) >> 4;
+    addr.f = (*us) >> 5;
+    addr.g = (*us) >> 6;
+    addr.h = (*us) >> 7;
+    addr.i = (*us) >> 8;
+    addr.j = (*us) >> 9;
+    addr.k = (*us) >> 10;
+    addr.l = (*us) >> 11;
+    return addr;
+}
+
 Valid ucharToValid(unsigned char uc){
     Valid v;
     v.a = uc;
     return v;
 }
 
-unsigned char pageIndexToUChar(PageIndex page_index) {
-    return page_index.a + page_index.b * 2 + page_index.c * 4 + page_index.d * 8;
+unsigned char pageIndexToUChar(PageIndex *page_index) {
+    return page_index->a + page_index->b * 2 + page_index->c * 4 + page_index->d * 8;
 }
 
-unsigned char frameIndexToUChar(FrameIndex frame_index) {
-    return frame_index.a + frame_index.b * 2 + frame_index.c * 4;
+unsigned char frameIndexToUChar(FrameIndex *frame_index) {
+    return frame_index->a + frame_index->b * 2 + frame_index->c * 4;
 }
 
-unsigned char validToUChar(Valid v){
-    return v.a;
+unsigned short addressToUShort(Address *addr) {
+    return addr->a + addr->b * 2  + addr->c * 4  + addr->d * 8  + addr->e * 16  + addr->f * 32 
+     + addr->g * 64  + addr->h * 128  + addr->i * 256  + addr->j * 512  + addr->k * 1024  + addr->l * 2048;
+}
+
+unsigned short virtualAddressToUShort(PageIndex *page_index, Address *addr){
+    return page_index->a * 32768 + page_index->b * 16384 + page_index->c * 8192 + page_index->d * 4096 + addressToUShort(addr);
+}
+
+unsigned short physicalAddressToUShort(FrameIndex *frame_index, Address *addr){
+    return frame_index->a * 16384 + frame_index->b * 8192 + frame_index->c * 4096 + addressToUShort(addr);
 }
 
 typedef struct PageListElement {
@@ -95,12 +121,12 @@ typedef struct FrameListElement {
 
 typedef struct PageList {
     struct PageListElement* head;
-    int size;
+    unsigned short size;
 } PageList;
 
 typedef struct FrameList {
     struct FrameListElement* head;
-    int size;
+    unsigned short size;
 } FrameList;
 
 PageList* createPageList() {
@@ -121,11 +147,11 @@ FrameList* createFrameList() {
     return list;
 }
 
-int pagesSize(PageList* list){
+unsigned short pagesSize(PageList* list){
     return list->size;
 }
 
-int framesSize(FrameList* list){
+unsigned short framesSize(FrameList* list){
     return list->size;
 }
 
@@ -172,7 +198,7 @@ void addFrame(FrameList* list, FrameIndex table_index, PageIndex content) {
     ++list->size;
 }
 
-PageListElement* getPage(PageList* list, int index){
+PageListElement* getPage(PageList* list, short index){
     if(index < 0 || index >= list->size || isEmptyPages(list)) {
         puts("No existe el elemento");
         return NULL;
@@ -184,7 +210,7 @@ PageListElement* getPage(PageList* list, int index){
     return element;
 }
 
-FrameListElement* getFrame(FrameList* list, int index){
+FrameListElement* getFrame(FrameList* list, short index){
     if(index < 0 || index >= list->size || isEmptyFrames(list)) {
         puts("No existe el elemento");
         return NULL;
@@ -196,7 +222,7 @@ FrameListElement* getFrame(FrameList* list, int index){
     return element;
 }
 
-void setPage(PageList* list, int index, PageIndex table_index, FrameIndex content, Valid valid) {
+void setPage(PageList* list, short index, PageIndex table_index, FrameIndex content, Valid valid) {
     PageListElement* aux;
     if((aux = getPage(list, index))) {
         aux->table_index = table_index;
@@ -206,7 +232,7 @@ void setPage(PageList* list, int index, PageIndex table_index, FrameIndex conten
         puts("Pocisión inválida");
 }
 
-void setFrame(FrameList* list, int index, FrameIndex table_index, PageIndex content) {
+void setFrame(FrameList* list, short index, FrameIndex table_index, PageIndex content) {
     FrameListElement* aux;
     if((aux = getFrame(list, index))) {
         aux->table_index = table_index;
@@ -223,10 +249,10 @@ void printPageList(PageList* list){
     PageListElement* element = list->head;
     printf("\nTabla de páginas en el disco.\n|Page_index\t|Frame_index\t|Valid\t|\n");
     while (element->next) {  
-        printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, element->table_index.d, pageIndexToUChar(element->table_index), element->content.a, element->content.b, element->content.c, frameIndexToUChar(element->content), element->valid.a);
+        printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, element->table_index.d, pageIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, frameIndexToUChar(&element->content), element->valid.a);
         element = element->next;
     }
-    printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, element->table_index.d, pageIndexToUChar(element->table_index), element->content.a, element->content.b, element->content.c, frameIndexToUChar(element->content), element->valid.a);
+    printf("|%u%u%u%u (%d)\t|%u%u%u (%d)\t|%u\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, element->table_index.d, pageIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, frameIndexToUChar(&element->content), element->valid.a);
     element = element->next;
 }
 
@@ -238,10 +264,10 @@ void printFrameList(FrameList* list){
     FrameListElement* element = list->head;
     printf("\nTabla de marcos de página en memoria.\n|Frame_index\t|Page_index\t|\n");
     while (element->next) {  
-        printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, frameIndexToUChar(element->table_index), element->content.a, element->content.b, element->content.c, element->content.d, pageIndexToUChar(element->content));
+        printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, frameIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, element->content.d, pageIndexToUChar(&element->content));
         element = element->next;
     }
-    printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, frameIndexToUChar(element->table_index), element->content.a, element->content.b, element->content.c, element->content.d, pageIndexToUChar(element->content));
+    printf("|%u%u%u (%d)\t|%u%u%u%u (%d)\t|\n", element->table_index.a, element->table_index.b, element->table_index.c, frameIndexToUChar(&element->table_index), element->content.a, element->content.b, element->content.c, element->content.d, pageIndexToUChar(&element->content));
     element = element->next;
 }
 

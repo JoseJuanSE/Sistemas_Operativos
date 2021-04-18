@@ -25,11 +25,20 @@ void loadProgram(){
     printFrameList(frame_table);
 }
 
-void swapping(unsigned char *frame_index, unsigned char page_index){
-
+void swapping(unsigned char *frame_index, short *page_index){
+    PageIndex pg_i = ucharToPageIndex(*page_index);
+    FrameIndex fm_i = ucharToFrameIndex(*frame_index);
+    unsigned short i;
+    for(i = 0; i < 4096; i++){
+        Address addr = ushortToAddress(&i);
+        printf("\nDirección virtual entrante: %u%u%u%u%u%u%u%u%u%u%u%u%u%u%u%u (%d)\nDirección física saliente: %u%u%u%u%u%u%u%u%u%u%u%u%u%u%u (%d)\n", 
+            pg_i.d, pg_i.c, pg_i.b, pg_i.a, addr.l, addr.k, addr.j, addr.i, addr.h, addr.g, addr.f, addr.e, addr.d, addr.c, addr.b, addr.a,
+            virtualAddressToUShort(&pg_i, &addr), fm_i.c, fm_i.b, fm_i.a, addr.l, addr.k, addr.j, addr.i, addr.h, addr.g, addr.f, addr.e, addr.d, addr.c,
+            addr.b, addr.a, physicalAddressToUShort(&fm_i, &addr));
+    }
 }
 
-void pageFault(int *index_toAdd) {
+void pageFault(short *index_toAdd) {
     PageListElement* page = getPage(page_table, *index_toAdd);
     if(!page)
         printf("\n\nLa página índicada no se encuentra en el disco.\n");
@@ -38,8 +47,8 @@ void pageFault(int *index_toAdd) {
         setFrame(frame_table, swap, ucharToFrameIndex(swap), ucharToPageIndex(*index_toAdd));
         setPage(page_table, swap, ucharToPageIndex(swap), ucharToFrameIndex(0), ucharToValid(0));
         setPage(page_table, *index_toAdd, ucharToPageIndex(*index_toAdd), ucharToFrameIndex(swap), ucharToValid(1));
-        swapping(&swap, *index_toAdd);
-        printf("\n\nLa página índicada se ha cargado en la memoria física de acuerdo al aalgoritmo FIFO.\n");
+        swapping(&swap, index_toAdd);
+        printf("\n\nLa página índicada se ha cargado en la memoria física de acuerdo al algoritmo FIFO.\n");
         printPageList(page_table);
         printFrameList(frame_table);
     } else 
@@ -53,12 +62,20 @@ void clearADTs(){
 }
 
 int main() {
-    int page_index_toAdd;
+    char control = 's';
+    short page_index_toAdd;
     loadProgram();
-    printf("Indique el índice de página a insertar en la memoria física: ");
-    fflush(stdin);
-    scanf("%d", &page_index_toAdd);
-    pageFault(&page_index_toAdd);
+    do{
+        printf("Indique el índice de página a insertar en la memoria física: ");
+        fflush(stdin);
+        scanf("%hd", &page_index_toAdd);
+        pageFault(&page_index_toAdd);
+        printf("¿Desea continuar (s/n, S/N)? ");
+        fflush(stdin);
+        scanf("%c", &control);
+        if(!(control == 's' || control == 'S'))
+            break;
+    } while(1);
     clearADTs();
     return 0;
 }
