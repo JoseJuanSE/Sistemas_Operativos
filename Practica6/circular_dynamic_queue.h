@@ -41,7 +41,7 @@ QueueElement * createQueueElement(QueueEntry item) {
     return element;
 }
 
-void enQueue(QueueEntry item, Queue * queue) {
+void enQueue(Queue * queue, QueueEntry item) {
     QueueElement* element = createQueueElement(item);
     if(queueIsEmpty(queue))
         queue->front = element;

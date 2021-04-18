@@ -59,6 +59,7 @@ void append(List* list, ListEntry table_index, ListEntry content) {
     if(isEmpty(list)){
         element->prev = NULL;
         list->head = element;
+        ++list->size;
         return;
     }
     while(last->next)
@@ -105,12 +106,8 @@ ListElement* get(List* list, int index){
     }
     ListElement* element = list->head;
     int i;
-    for(i = 1; element && i < index; i++)
+    for(i = 0; i < index; i++)
         element = element->next;
-    if(!element){
-        puts("No existe el elemento");
-        return NULL;
-    }
     return element;
 }
 
@@ -152,6 +149,7 @@ void removeElement(List* list, ListElement* element) {
     if(element->prev)
         element->prev->next = element->next;
     free(element);
+    --list->size;
 }
 
 void removeAt(List* list, int index){
@@ -161,12 +159,8 @@ void removeAt(List* list, int index){
     }
     ListElement* element = list->head;
     int i;
-    for(i = 1; element && i < index; i++)
+    for(i = 0; i < index; i++)
         element = element->next;
-    if(!element){
-        puts("No existe el elemento");
-        return;
-    }
     removeElement(list, element);
 }
 
