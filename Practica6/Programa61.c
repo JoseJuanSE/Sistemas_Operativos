@@ -11,12 +11,12 @@ void loadProgram(){
     frame_table = createFrameList();
     page_fault_algorithm = createQueue();
     for(i = 0; i < 16; i++)
-        addPage(page_table, ucharToPageIndex(i), ucharToFrameIndex(0), ucharToValid(0));
+        appendPage(page_table, ucharToPageIndex(i), ucharToFrameIndex(0), ucharToValid(0));
     printf("\nEl programa se ha cargado en el disco.\n");
     printPageList(page_table);
     printFrameList(frame_table);
     for(i = 0; i < 8; i++){
-        addFrame(frame_table, ucharToFrameIndex(i), ucharToPageIndex(i));
+        appendFrame(frame_table, ucharToFrameIndex(i), ucharToPageIndex(i));
         enQueue(page_fault_algorithm, i);
         setPage(page_table, i, ucharToPageIndex(i), ucharToFrameIndex(i), ucharToValid(1));
     }
@@ -73,9 +73,7 @@ int main() {
         printf("¿Desea continuar (s/n, S/N)? ");
         fflush(stdin);
         scanf("%c", &control);
-        if(!(control == 's' || control == 'S'))
-            break;
-    } while(1);
+    } while(control == 's' || control == 'S');
     clearADTs();
     return 0;
 }
