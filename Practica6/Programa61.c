@@ -12,7 +12,7 @@ void loadProgram(){
     page_fault_algorithm = createQueue();
     for(i = 0; i < 16; i++)
         appendPage(page_table, ucharToPageIndex(i), ucharToFrameIndex(0), ucharToValid(0));
-    printf("\nEl programa se ha cargado en el disco.\n");
+    printf("\nEl proceso se ha cargado en el disco.\n");
     printPageList(page_table);
     printFrameList(frame_table);
     for(i = 0; i < 8; i++){
@@ -20,7 +20,7 @@ void loadProgram(){
         enQueue(page_fault_algorithm, i);
         setPage(page_table, i, ucharToPageIndex(i), ucharToFrameIndex(i), ucharToValid(1));
     }
-    printf("\nEl programa se ha cargado en la memoria principal.\n");
+    printf("\nEl proceso se ha cargado en la memoria principal.\n");
     printPageList(page_table);
     printFrameList(frame_table);
 }
@@ -47,8 +47,9 @@ void pageFault(short *index_toAdd) {
         setFrame(frame_table, swap, ucharToFrameIndex(swap), ucharToPageIndex(*index_toAdd));
         setPage(page_table, swap, ucharToPageIndex(swap), ucharToFrameIndex(0), ucharToValid(0));
         setPage(page_table, *index_toAdd, ucharToPageIndex(*index_toAdd), ucharToFrameIndex(swap), ucharToValid(1));
+        printf("\n\nEl proceso se ha establecido en un estado de bloqueado.\n");
         swapping(&swap, index_toAdd);
-        printf("\n\nLa página índicada se ha cargado en la memoria física de acuerdo al algoritmo FIFO.\n");
+        printf("\nLa página índicada se ha cargado en la memoria física de acuerdo al algoritmo FIFO.\nEl proceso se ha establecido en un estado de listo.\n");
         printPageList(page_table);
         printFrameList(frame_table);
     } else 
