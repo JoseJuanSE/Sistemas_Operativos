@@ -1,56 +1,54 @@
-#include "circular_dynamic_queue.h"
-#include "doubly_linked_list.h"
+#include "page_fault_fifo_algorithm.h"
+#include "tables.h"
 
-#define MEMORY_LENGTH 32
-#define VIRTUAL_MEMORY_LENGTH 64
-#define PAGE_LENGTH 4
-
-List *page_table, *frame_table;
+PageList *page_table;
+FrameList *frame_table;
 Queue *page_fault_algorithm;
-
-void printTables(){
-    printf("\nTabla de páginas en el disco.\n|Page_index\t|Frame_index\t|\n");
-    printList(page_table);
-    printf("\nTabla de marcos de página en memoria.\n|Frame_index\t|Page_index\t|\n");
-    printList(frame_table);
-}
 
 void loadProgram(){
     unsigned char i;
-    page_table = createList();
-    frame_table = createList();
+    page_table = createPageList();
+    frame_table = createFrameList();
     page_fault_algorithm = createQueue();
-    for(i = 0; i < VIRTUAL_MEMORY_LENGTH / PAGE_LENGTH; i++)
-        append(page_table, i, 255);
+    for(i = 0; i < 16; i++)
+        addPage(page_table, ucharToPageIndex(i), ucharToFrameIndex(0), ucharToValid(0));
     printf("\nEl programa se ha cargado en el disco.\n");
-    printTables();
-    for(i = 0; i < MEMORY_LENGTH / PAGE_LENGTH; i++){
-        append(frame_table, i, i);
+    printPageList(page_table);
+    printFrameList(frame_table);
+    for(i = 0; i < 8; i++){
+        addFrame(frame_table, ucharToFrameIndex(i), ucharToPageIndex(i));
         enQueue(page_fault_algorithm, i);
-        set(page_table, i, i, i);
+        setPage(page_table, i, ucharToPageIndex(i), ucharToFrameIndex(i), ucharToValid(1));
     }
     printf("\nEl programa se ha cargado en la memoria principal.\n");
-    printTables();
+    printPageList(page_table);
+    printFrameList(frame_table);
+}
+
+void swapping(unsigned char *frame_index, unsigned char page_index){
+
 }
 
 void pageFault(int *index_toAdd) {
-    ListElement* page = get(page_table, *index_toAdd);
+    PageListElement* page = getPage(page_table, *index_toAdd);
     if(!page)
         printf("\n\nLa página índicada no se encuentra en el disco.\n");
-    if(page->content == 255){
+    if(!page->valid.a){
         unsigned char swap = deQueue(page_fault_algorithm);
-        set(frame_table, swap, swap, *index_toAdd);
-        set(page_table, swap, swap, 255);
-        set(page_table, *index_toAdd, *index_toAdd, swap);
+        setFrame(frame_table, swap, ucharToFrameIndex(swap), ucharToPageIndex(*index_toAdd));
+        setPage(page_table, swap, ucharToPageIndex(swap), ucharToFrameIndex(0), ucharToValid(0));
+        setPage(page_table, *index_toAdd, ucharToPageIndex(*index_toAdd), ucharToFrameIndex(swap), ucharToValid(1));
+        swapping(&swap, *index_toAdd);
         printf("\n\nLa página índicada se ha cargado en la memoria física de acuerdo al aalgoritmo FIFO.\n");
-        printTables();
+        printPageList(page_table);
+        printFrameList(frame_table);
     } else 
         printf("\n\nLa página índicada ya se encuentra en la memoria física.\n");
 }
 
 void clearADTs(){
-    clearList(page_table);
-    clearList(frame_table);
+    clearPageList(page_table);
+    clearFrameList(frame_table);
     clearQueue(page_fault_algorithm);
 }
 

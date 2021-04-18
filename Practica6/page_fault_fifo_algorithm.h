@@ -1,8 +1,8 @@
-/*************************************************
- * circular_dynamic_queue
+/***********************************************************************
+ * page_fault_fifo_algorithm
  * @author: Carlos Huerta García
- * @description: Unsigned har queue implementation
- * ***********************************************/
+ * @description: FIFO page fault algorithm circular queue implementation
+ * *********************************************************************/
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
