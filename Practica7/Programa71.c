@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 #include <ncurses.h>
 #define WIDTH 30
 #define HEIGHT 10
@@ -14,51 +14,55 @@ char *choices[] = {
 };
 int n_choices = sizeof(choices) / sizeof(char *);
 void print_menu(WINDOW *menu_win, int highlight);
-void report_choice(int mouse_x, int mouse_y, int *p_choice);
 int main()
 {
-    int c, choice = 0;
     WINDOW *menu_win;
-    MEVENT event;
-    /* Initialize curses */
+    int highlight = 1;
+    int choice = 0;
+    int c;
     initscr();
     clear();
     noecho();
-    cbreak(); //Line buffering disabled. pass on everything
-    /* Try to put the window in the middle of screen */
+    cbreak(); /* Line buffering disabled. pass on everything */
     startx = (80 - WIDTH) / 2;
     starty = (24 - HEIGHT) / 2;
-    attron(A_REVERSE);
-    mvprintw(23, 1, "Click on Exit to quit (Works best in a virtual console)");
-    refresh();
-    attroff(A_REVERSE);
-    /* Print the menu for the first time */
     menu_win = newwin(HEIGHT, WIDTH, starty, startx);
-    print_menu(menu_win, 1);
-    /* Get all the mouse events */
-    mousemask(ALL_MOUSE_EVENTS, NULL);
+    keypad(menu_win, TRUE);
+    mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
+    refresh();
+    print_menu(menu_win, highlight);
     while (1)
     {
         c = wgetch(menu_win);
         switch (c)
         {
-        case KEY_MOUSE:
-            if (getmouse(&event) == OK)
-            { /* When the user clicks left mouse button */
-                if (event.bstate & BUTTON1_PRESSED)
-                {
-                    report_choice(event.x + 1, event.y + 1, &choice);
-                    if (choice == -1) //Exit chosen
-                        goto end;
-                    mvprintw(22, 1, "Choice made is : %d String Chosen is \"%10s\"", choice, choices[choice - 1]);
-                    refresh();
-                }
-            }
-            print_menu(menu_win, choice);
+        case KEY_UP:
+            if (highlight == 1)
+                highlight = n_choices;
+            else
+                --highlight;
+            break;
+        case KEY_DOWN:
+            if (highlight == n_choices)
+                highlight = 1;
+            else
+                ++highlight;
+            break;
+        case 10:
+            choice = highlight;
+            break;
+        default:
+            mvprintw(24, 0, "Charcter pressed is = %3d Hopefully it can be printed as '%c'", c, c);
+            refresh();
             break;
         }
+        print_menu(menu_win, highlight);
+        if (choice != 0) /* User did a choice come out of the infinite loop */
+            break;
     }
-end:
+    mvprintw(23, 0, "You chose choice %d with choice string %s\n", choice, choices[choice - 1]);
+    clrtoeol();
+    refresh();
     endwin();
     return 0;
 }
@@ -70,7 +74,7 @@ void print_menu(WINDOW *menu_win, int highlight)
     box(menu_win, 0, 0);
     for (i = 0; i < n_choices; ++i)
     {
-        if (highlight == i + 1)
+        if (highlight == i + 1) /* High light the present choice */
         {
             wattron(menu_win, A_REVERSE);
             mvwprintw(menu_win, y, x, "%s", choices[i]);
@@ -81,20 +85,4 @@ void print_menu(WINDOW *menu_win, int highlight)
         ++y;
     }
     wrefresh(menu_win);
-}
-/* Report the choice according to mouse position */
-void report_choice(int mouse_x, int mouse_y, int *p_choice)
-{
-    int i, j, choice;
-    i = startx + 2;
-    j = starty + 3;
-    for (choice = 0; choice < n_choices; ++choice)
-        if (mouse_y == j + choice && mouse_x >= i && mouse_x <= i + strlen(choices[choice]))
-        {
-            if (choice == n_choices - 1)
-                *p_choice = -1;
-            else
-                *p_choice = choice + 1;
-            break;
-        }
 }
