@@ -6,11 +6,11 @@
 int startx = 0;
 int starty = 0;
 char *choices[] = {
-    "Choice 1",
-    "Choice 2",
-    "Choice 3",
-    "Choice 4",
-    "Exit",
+    "Opcion 1",
+    "Opcion 2",
+    "Opcion 3",
+    "Opcion 4",
+    "Salida",
 };
 int n_choices = sizeof(choices) / sizeof(char *);
 void print_menu(WINDOW *menu_win, int highlight);
@@ -25,7 +25,7 @@ int main()
     if (has_colors() == FALSE)
     {
         endwin();
-        printf("Your terminal does not support color\n");
+        printf("Tu terminal no soporta colores\n");
         exit(1);
     }
     start_color(); /* Start color */
@@ -37,7 +37,7 @@ int main()
     starty = (24 - HEIGHT) / 2;
     menu_win = newwin(HEIGHT, WIDTH, starty, startx);
     keypad(menu_win, TRUE);
-    mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
+    mvprintw(0, 0, "Usa las flechas para ir arriba y abajo, Presiona entrer para escojer una opcion");
     refresh();
     print_menu(menu_win, highlight);
     while (1)
@@ -61,7 +61,7 @@ int main()
             choice = highlight;
             break;
         default:
-            mvprintw(24, 0, "Charcter pressed is = %3d Hopefully it can be printed as '%c'", c, c);
+            mvprintw(24, 0, "El caracter presionado es = %3d Ojala sea impresa como: '%c'", c, c);
             refresh();
             break;
         }
@@ -69,7 +69,7 @@ int main()
         if (choice != 0) /* User did a choice come out of the infinite loop */
             break;
     }
-    mvprintw(23, 0, "You chose choice %d with choice string %s\n", choice, choices[choice - 1]);
+    mvprintw(23, 0, "Tu opcion elegida %d con opcion de cadena %s\n", choice, choices[choice - 1]);
     clrtoeol();
     refresh();
     attroff(COLOR_PAIR(1));
