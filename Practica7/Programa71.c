@@ -1,59 +1,77 @@
 #include <stdlib.h>
-#include <stdio.h>
+#include <string.h>
 #include <ncurses.h>
-#define WIDTH 30
-#define HEIGHT 10
-int startx = 0;
-int starty = 0;
-char *choices[] = {
-    "Opcion 1",
-    "Opcion 2",
-    "Opcion 3",
-    "Opcion 4",
-    "Salida",
-};
-int n_choices = sizeof(choices) / sizeof(char *);
-void print_menu(WINDOW *menu_win, int highlight);
-int main()
-{
-    WINDOW *menu_win;
-    int highlight = 1;
-    int choice = 0;
-    int c;
-    initscr(); /* Start curses mode */
-    clear();
-    if (has_colors() == FALSE)
-    {
-        endwin();
-        printf("Tu terminal no soporta colores\n");
-        exit(1);
+#include <unistd.h>
+void print_menu(WINDOW *menu_win, int highlight) {
+    int x, y;
+    x = 1;
+    y = 1;
+    box(menu_win, 0, 0);
+    if (highlight == 1) {
+        wattron(menu_win, A_REVERSE);
+        mvwprintw(menu_win, y, x, "%s", "Sí");
+        wattroff(menu_win, A_REVERSE);
     }
-    start_color(); /* Start color */
-    init_pair(1, COLOR_GREEN, COLOR_BLACK);
-    attron(COLOR_PAIR(1));
-    noecho();
-    cbreak(); /* Line buffering disabled. pass on everything */
-    startx = (80 - WIDTH) / 2;
-    starty = (24 - HEIGHT) / 2;
-    menu_win = newwin(HEIGHT, WIDTH, starty, startx);
-    keypad(menu_win, TRUE);
-    mvprintw(0, 0, "Usa las flechas para ir arriba y abajo, Presiona entrer para escojer una opcion");
+    else
+        mvwprintw(menu_win, y, x, "%s", "Sí");
+    x += 6;
+    if (highlight == 2) {
+        wattron(menu_win, A_REVERSE);
+        mvwprintw(menu_win, y, x, "%s", "No");
+        wattroff(menu_win, A_REVERSE);
+    }
+    else
+        mvwprintw(menu_win, y, x, "%s", "No");
+    wrefresh(menu_win);
+}
+
+void print_hack(WINDOW *win, int starty, int startx, int width, char *string) {
+    int length, x, y, highlight = 1, choice = 0, c;
+    float temp;
+    if (win == NULL) win = stdscr;
+    getyx(win, y, x);
+    if (startx != 0) x = startx;
+    if (starty != 0) y = starty;
+    if (width == 0) width = 80;
+    length = strlen(string);
+    temp = (width - length) / 2;
+    y -= 5;
+    x = startx + (int)temp;
+    mvwprintw(win, --y, x--, "%s", string);
+    y += 2;
     refresh();
+    for(int i = 0; i <= length + 1; i++) {
+        mvwprintw(win, y, x++, "%c", '|');
+        mvwprintw(win, y + 2, startx + (int)temp, "%s", "Descifrando...");
+        refresh();
+        sleep(1);
+    }
+    y += 3;
+    init_pair(2, COLOR_GREEN, COLOR_BLACK);
+    attron(COLOR_PAIR(2));
+    mvwprintw(win, ++y, startx + (int)temp, "%s", "ACCESO CONCEDIDO");
+    refresh();
+    attroff(COLOR_PAIR(2));
+    y++;
+    attron(COLOR_PAIR(1));
+    mvwprintw(win, ++y, startx + (int)temp, "%s", "AUTODESTRUIR:");
+    refresh();
+    y++;
+    WINDOW *menu_win = newwin(3, 10, y, x);
+    keypad(menu_win, TRUE);
     print_menu(menu_win, highlight);
-    while (1)
-    {
+    while (1) {
         c = wgetch(menu_win);
-        switch (c)
-        {
-        case KEY_UP:
+        switch (c) {
+        case KEY_RIGHT:
             if (highlight == 1)
-                highlight = n_choices;
+                ++highlight;
             else
                 --highlight;
             break;
-        case KEY_DOWN:
-            if (highlight == n_choices)
-                highlight = 1;
+        case KEY_LEFT:
+            if (highlight == 2)
+                --highlight;
             else
                 ++highlight;
             break;
@@ -61,38 +79,26 @@ int main()
             choice = highlight;
             break;
         default:
-            mvprintw(24, 0, "El caracter presionado es = %3d Ojala sea impresa como: '%c'", c, c);
-            refresh();
             break;
         }
         print_menu(menu_win, highlight);
         if (choice != 0) /* User did a choice come out of the infinite loop */
             break;
     }
-    mvprintw(23, 0, "Tu opcion elegida %d con opcion de cadena %s\n", choice, choices[choice - 1]);
-    clrtoeol();
     refresh();
     attroff(COLOR_PAIR(1));
-    endwin();
-    return 0;
 }
-void print_menu(WINDOW *menu_win, int highlight)
-{
-    int x, y, i;
-    x = 2;
-    y = 2;
-    box(menu_win, 0, 0);
-    for (i = 0; i < n_choices; ++i)
-    {
-        if (highlight == i + 1) /* High light the present choice */
-        {
-            wattron(menu_win, A_REVERSE);
-            mvwprintw(menu_win, y, x, "%s", choices[i]);
-            wattroff(menu_win, A_REVERSE);
-        }
-        else
-            mvwprintw(menu_win, y, x, "%s", choices[i]);
-        ++y;
+int main(int argc, char *argv[]) {
+    initscr();
+    if (has_colors() == FALSE) {
+        endwin();
+        printf("La terminal no soporta colores\n");
+        exit(1);
     }
-    wrefresh(menu_win);
+    start_color();
+    init_pair(1, COLOR_RED, COLOR_BLACK);
+    attron(COLOR_PAIR(1));
+    print_hack(stdscr, LINES / 2, 0, 0, "HACKEANDO EL SISTEMA");
+    attroff(COLOR_PAIR(1));
+    endwin();
 }
