@@ -20,8 +20,17 @@ int main()
     int highlight = 1;
     int choice = 0;
     int c;
-    initscr();
+    initscr(); /* Start curses mode */
     clear();
+    if (has_colors() == FALSE)
+    {
+        endwin();
+        printf("Your terminal does not support color\n");
+        exit(1);
+    }
+    start_color(); /* Start color */
+    init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    attron(COLOR_PAIR(1));
     noecho();
     cbreak(); /* Line buffering disabled. pass on everything */
     startx = (80 - WIDTH) / 2;
@@ -63,6 +72,7 @@ int main()
     mvprintw(23, 0, "You chose choice %d with choice string %s\n", choice, choices[choice - 1]);
     clrtoeol();
     refresh();
+    attroff(COLOR_PAIR(1));
     endwin();
     return 0;
 }
