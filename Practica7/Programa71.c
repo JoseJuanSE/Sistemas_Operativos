@@ -40,11 +40,13 @@ void print_hack(WINDOW *win, int starty, int startx, int width, char *string) {
     mvwprintw(win, --y, x--, "%s", string);
     y += 2;
     refresh();
+    int r = 1000000;
     for(int i = 0; i <= length + 1; i++) {
         mvwprintw(win, y, x++, "%c", '|');
         mvwprintw(win, y + 2, startx + (int)temp, "%s", "Descifrando...");
         refresh();
-        sleep(1);
+        r -= 45000;
+        usleep(r);
     }
     y += 3;
     init_pair(2, COLOR_GREEN, COLOR_BLACK);
