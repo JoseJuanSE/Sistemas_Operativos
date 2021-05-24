@@ -458,39 +458,6 @@ void editorUpdateSyntax(erow *row) {
     row->hl_oc = oc;
 }
 
-/* Maps syntax highlight token types to terminal colors. */
-int editorSyntaxToColor(int hl) {
-    switch(hl) {
-    case HL_COMMENT:
-    case HL_MLCOMMENT: return 36;     /* cyan */
-    case HL_KEYWORD1: return 33;    /* yellow */
-    case HL_KEYWORD2: return 32;    /* green */
-    case HL_STRING: return 35;      /* magenta */
-    case HL_NUMBER: return 31;      /* red */
-    case HL_MATCH: return 34;      /* blu */
-    default: return 37;             /* white */
-    }
-}
-
-/* Select the syntax highlight scheme depending on the filename,
- * setting it in the global state E.syntax. */
-void editorSelectSyntaxHighlight(char *filename) {
-    for (unsigned int j = 0; j < HLDB_ENTRIES; j++) {
-        struct editorSyntax *s = HLDB+j;
-        unsigned int i = 0;
-        while(s->filematch[i]) {
-            char *p;
-            int patlen = strlen(s->filematch[i]);
-            if ((p = strstr(filename,s->filematch[i])) != NULL) {
-                if (s->filematch[i][0] != '.' || p[patlen] == '\0') {
-                    E.syntax = s;
-                    return;
-                }
-            }
-            i++;
-        }
-    }
-}
 
 /* ======================= Editor rows implementation ======================= */
 
@@ -876,13 +843,6 @@ void editorRefreshScreen(void) {
                     }
                     abAppend(&ab,c+j,1);
                 } else {
-                    int color = editorSyntaxToColor(hl[j]);
-                    if (color != current_color) {
-                        char buf[16];
-                        int clen = snprintf(buf,sizeof(buf),"\x1b[%dm",color);
-                        current_color = color;
-                        abAppend(&ab,buf,clen);
-                    }
                     abAppend(&ab,c+j,1);
                 }
             }
@@ -1054,9 +1014,6 @@ void editorProcessKeypress(int fd) {
         break;
     case CTRL_S:        /* Ctrl-s */
         editorSave();
-        break;
-    case CTRL_F:
-        editorFind(fd);
         break;
     case BACKSPACE:     /* Backspace */
     case CTRL_H:        /* Ctrl-h */
