@@ -54,6 +54,29 @@
 #include <fcntl.h>
 #include <signal.h>
 
+/* Syntax highlight types */
+#define HL_NORMAL 0
+#define HL_NONPRINT 1
+#define HL_COMMENT 2   /* Single line comment. */
+#define HL_MLCOMMENT 3 /* Multi-line comment. */
+#define HL_KEYWORD1 4
+#define HL_KEYWORD2 5
+#define HL_STRING 6
+#define HL_NUMBER 7
+#define HL_MATCH 8      /* Search match. */
+
+#define HL_HIGHLIGHT_STRINGS (1<<0)
+#define HL_HIGHLIGHT_NUMBERS (1<<1)
+
+struct editorSyntax {
+    char **filematch;
+    char **keywords;
+    char singleline_comment_start[2];
+    char multiline_comment_start[3];
+    char multiline_comment_end[3];
+    int flags;
+};
+
 /* This structure represents a single line of the file we are editing. */
 typedef struct erow {
     int idx;            /* Row index in the file, zero-based. */
@@ -65,6 +88,10 @@ typedef struct erow {
     int hl_oc;          /* Row had open comment at end in last syntax highlight
                            check. */
 } erow;
+
+typedef struct hlcolor {
+    int r,g,b;
+} hlcolor;
 
 struct editorConfig {
     int cx,cy;  /* Cursor x and y position in characters */
@@ -80,7 +107,9 @@ struct editorConfig {
     char statusmsg[80];
     time_t statusmsg_time;
     struct editorSyntax *syntax;    /* Current syntax highlight, or NULL. */
-}E;
+};
+
+static struct editorConfig E;
 
 enum KEY_ACTION{
         KEY_NULL = 0,       /* NULL */
@@ -289,6 +318,146 @@ int editorRowHasOpenComment(erow *row) {
                             row->render[row->rsize-1] != '/'))) return 1;
     return 0;
 }
+
+/* Set every byte of row->hl (that corresponds to every character in the line)
+ * to the right syntax highlight type (HL_* defines). */
+void editorUpdateSyntax(erow *row) {
+    row->hl = realloc(row->hl,row->rsize);
+    memset(row->hl,HL_NORMAL,row->rsize);
+
+    if (E.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
+
+    int i, prev_sep, in_string, in_comment;
+    char *p;
+    char **keywords = E.syntax->keywords;
+    char *scs = E.syntax->singleline_comment_start;
+    char *mcs = E.syntax->multiline_comment_start;
+    char *mce = E.syntax->multiline_comment_end;
+
+    /* Point to the first non-space char. */
+    p = row->render;
+    i = 0; /* Current char offset */
+    while(*p && isspace(*p)) {
+        p++;
+        i++;
+    }
+    prev_sep = 1; /* Tell the parser if 'i' points to start of word. */
+    in_string = 0; /* Are we inside "" or '' ? */
+    in_comment = 0; /* Are we inside multi-line comment? */
+
+    /* If the previous line has an open comment, this line starts
+     * with an open comment state. */
+    if (row->idx > 0 && editorRowHasOpenComment(&E.row[row->idx-1]))
+        in_comment = 1;
+
+    while(*p) {
+        /* Handle // comments. */
+        if (prev_sep && *p == scs[0] && *(p+1) == scs[1]) {
+            /* From here to end is a comment */
+            memset(row->hl+i,HL_COMMENT,row->size-i);
+            return;
+        }
+
+        /* Handle multi line comments. */
+        if (in_comment) {
+            row->hl[i] = HL_MLCOMMENT;
+            if (*p == mce[0] && *(p+1) == mce[1]) {
+                row->hl[i+1] = HL_MLCOMMENT;
+                p += 2; i += 2;
+                in_comment = 0;
+                prev_sep = 1;
+                continue;
+            } else {
+                prev_sep = 0;
+                p++; i++;
+                continue;
+            }
+        } else if (*p == mcs[0] && *(p+1) == mcs[1]) {
+            row->hl[i] = HL_MLCOMMENT;
+            row->hl[i+1] = HL_MLCOMMENT;
+            p += 2; i += 2;
+            in_comment = 1;
+            prev_sep = 0;
+            continue;
+        }
+
+        /* Handle "" and '' */
+        if (in_string) {
+            row->hl[i] = HL_STRING;
+            if (*p == '\\') {
+                row->hl[i+1] = HL_STRING;
+                p += 2; i += 2;
+                prev_sep = 0;
+                continue;
+            }
+            if (*p == in_string) in_string = 0;
+            p++; i++;
+            continue;
+        } else {
+            if (*p == '"' || *p == '\'') {
+                in_string = *p;
+                row->hl[i] = HL_STRING;
+                p++; i++;
+                prev_sep = 0;
+                continue;
+            }
+        }
+
+        /* Handle non printable chars. */
+        if (!isprint(*p)) {
+            row->hl[i] = HL_NONPRINT;
+            p++; i++;
+            prev_sep = 0;
+            continue;
+        }
+
+        /* Handle numbers */
+        if ((isdigit(*p) && (prev_sep || row->hl[i-1] == HL_NUMBER)) ||
+            (*p == '.' && i >0 && row->hl[i-1] == HL_NUMBER)) {
+            row->hl[i] = HL_NUMBER;
+            p++; i++;
+            prev_sep = 0;
+            continue;
+        }
+
+        /* Handle keywords and lib calls */
+        if (prev_sep) {
+            int j;
+            for (j = 0; keywords[j]; j++) {
+                int klen = strlen(keywords[j]);
+                int kw2 = keywords[j][klen-1] == '|';
+                if (kw2) klen--;
+
+                if (!memcmp(p,keywords[j],klen) &&
+                    is_separator(*(p+klen)))
+                {
+                    /* Keyword */
+                    memset(row->hl+i,kw2 ? HL_KEYWORD2 : HL_KEYWORD1,klen);
+                    p += klen;
+                    i += klen;
+                    break;
+                }
+            }
+            if (keywords[j] != NULL) {
+                prev_sep = 0;
+                continue; /* We had a keyword match */
+            }
+        }
+
+        /* Not special chars */
+        prev_sep = is_separator(*p);
+        p++; i++;
+    }
+
+    /* Propagate syntax change to the next row if the open commen
+     * state changed. This may recursively affect all the following rows
+     * in the file. */
+    int oc = editorRowHasOpenComment(row);
+    if (row->hl_oc != oc && row->idx+1 < E.numrows)
+        editorUpdateSyntax(&E.row[row->idx+1]);
+    row->hl_oc = oc;
+}
+
 
 /* ======================= Editor rows implementation ======================= */
 
@@ -658,7 +827,24 @@ void editorRefreshScreen(void) {
             unsigned char *hl = r->hl+E.coloff;
             int j;
             for (j = 0; j < len; j++) {
-                pend(&ab,c+j,1);
+                if (hl[j] == HL_NONPRINT) {
+                    char sym;
+                    abAppend(&ab,"\x1b[7m",4);
+                    if (c[j] <= 26)
+                        sym = '@'+c[j];
+                    else
+                        sym = '?';
+                    abAppend(&ab,&sym,1);
+                    abAppend(&ab,"\x1b[0m",4);
+                } else if (hl[j] == HL_NORMAL) {
+                    if (current_color != -1) {
+                        abAppend(&ab,"\x1b[39m",5);
+                        current_color = -1;
+                    }
+                    abAppend(&ab,c+j,1);
+                } else {
+                    abAppend(&ab,c+j,1);
+                }
             }
         }
         abAppend(&ab,"\x1b[39m",5);
