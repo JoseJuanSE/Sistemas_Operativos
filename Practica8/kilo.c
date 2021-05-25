@@ -31,7 +31,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-// ESTA MAL ESTE PEDO
+
 #define KILO_VERSION "0.0.1"
 
 #ifdef __linux__
@@ -284,7 +284,7 @@ int is_separator(int c) {
  * that starts at this row or at one before, and does not end at the end
  * of the row but spawns to the next row. */
 int editorRowHasOpenComment(erow *row) {
-    if (row->hl && row->rsize &&
+    if (row->hl && row->rsize && row->hl[row->rsize-1] == HL_MLCOMMENT &&
         (row->rsize < 2 || (row->render[row->rsize-2] != '*' ||
                             row->render[row->rsize-1] != '/'))) return 1;
     return 0;
@@ -322,6 +322,9 @@ void editorUpdateRow(erow *row) {
     }
     row->rsize = idx;
     row->render[idx] = '\0';
+
+    /* Update the syntax highlighting attributes of the row. */
+    editorUpdateSyntax(row);
 }
 
 /* Insert a row at the specified position, shifting the other rows on the bottom
@@ -647,6 +650,17 @@ void editorRefreshScreen(void) {
 
         r = &E.row[filerow];
 
+        int len = r->rsize - E.coloff;
+        int current_color = -1;
+        if (len > 0) {
+            if (len > E.screencols) len = E.screencols;
+            char *c = r->render+E.coloff;
+            unsigned char *hl = r->hl+E.coloff;
+            int j;
+            for (j = 0; j < len; j++) {
+                pend(&ab,c+j,1);
+            }
+        }
         abAppend(&ab,"\x1b[39m",5);
         abAppend(&ab,"\x1b[0K",4);
         abAppend(&ab,"\r\n",2);
