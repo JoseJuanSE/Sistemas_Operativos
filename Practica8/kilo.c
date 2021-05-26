@@ -566,7 +566,7 @@ void editorRefreshScreen(void) {
             if (E.numrows == 0 && y == E.screenrows/3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome,sizeof(welcome),
-                    "Kilo editor -- verison %s\x1b[0K\r\n", KILO_VERSION);
+                    "programa81 text editor --version %s\x1b[0K\r\n", KILO_VERSION);
                 int padding = (E.screencols-welcomelen)/2;
                 if (padding) {
                     abAppend(&ab,"~",1);
@@ -722,6 +722,7 @@ void editorProcessKeypress(int fd) {
             quit_times--;
             return;
         }
+        system("clear");
         exit(0);
         break;
     case CTRL_S:
@@ -782,20 +783,20 @@ void initEditor(void) {
 
 int main(int argc, char **argv) {
     initEditor();
-    if (argc == 0) {
-        char filename[240], command[256];
-        printf("\nEnter the name of the file to create (max size 240): ");
-        fflush(stdin);
-        scanf("%s", filename);
-        strcpy(command, "programa81 ");
-        strcat(command, filename);
-        system(command);
-        return 0;
-    }
-    else if(argc != 2) {
-        perror("Usage:\nlucky\nlucky filename\n");
+    if (argc == 2) editorOpen(argv[1]);
+    else if(argc > 2) {
+        perror("Usage:\nprograma81\nprograma81 filename\n");
         exit(1);
-    } else editorOpen(argv[1]);
+        } else {
+            char filename[80], command[94];
+            printf("\nEnter the name of the file to create (max size 240): ");
+            fflush(stdin);
+            scanf("%s", filename);
+            strcpy(command, "./programa81 ");
+            strcat(command, filename);
+            system(command);
+            return 0;
+        }
     enableRawMode(STDIN_FILENO);
     editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
     while(1) {
