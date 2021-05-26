@@ -632,7 +632,7 @@ int main(int argc, char **argv) {
     initEditor();
     if (argc == 2) editorOpen(argv[1]);
     else if(argc > 2) {
-        perror("Uso:\nprograma81\nprograma81 nombredearchivo\n");
+        perror("Uso:\n./programa81\n./programa81 nombredearchivo\n");
         exit(1);
     } else {
         char filename[80], command[94];
