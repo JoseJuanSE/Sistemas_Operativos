@@ -18,18 +18,6 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#define HL_NORMAL 0
-#define HL_NONPRINT 1
-#define HL_COMMENT 2
-#define HL_KEYWORD1 4
-#define HL_KEYWORD2 5
-#define HL_STRING 6
-#define HL_NUMBER 7
-#define HL_MATCH 8
-
-#define HL_HIGHLIGHT_STRINGS (1<<0)
-#define HL_HIGHLIGHT_NUMBERS (1<<1)
-
 struct editorSyntax {
     char **filematch, **keywords, singleline_comment_start[2];
     char multiline_comment_start[3], multiline_comment_end[3];
@@ -43,10 +31,6 @@ typedef struct erow {
     int hl_oc;
 } erow;
 
-typedef struct hlcolor {
-    int r, g, b;
-} hlcolor;
-
 struct editorConfig {
     int cx ,cy, rowoff, coloff, screenrows, screencols, numrows, rawmode;
     erow *row;
@@ -55,8 +39,6 @@ struct editorConfig {
     time_t statusmsg_time;
     struct editorSyntax *syntax;
 };
-
-static struct editorConfig E;
 
 enum KEY_ACTION{
         KEY_NULL = 0,
@@ -80,6 +62,9 @@ enum KEY_ACTION{
         PAGE_DOWN
 };
 
+static struct editorConfig E;
+static struct termios orig_termios;
+
 void editorSetStatusMessage(const char *fmt, ...) {
     va_list ap;
     va_start(ap,fmt);
@@ -87,8 +72,6 @@ void editorSetStatusMessage(const char *fmt, ...) {
     va_end(ap);
     E.statusmsg_time = time(NULL);
 }
-
-static struct termios orig_termios;
 
 void disableRawMode(int fd) {
     if (E.rawmode) {
@@ -152,7 +135,7 @@ int editorReadKey(int fd) {
             break;
         default:
             return c;
-        }
+    }
 }
 
 int getCursorPosition(int ifd, int ofd, int *rows, int *cols) {
@@ -204,7 +187,7 @@ int editorRowHasOpenComment(erow *row) {
 
 void editorUpdateSyntax(erow *row) {
     row->hl = realloc(row->hl,row->rsize);
-    memset(row->hl,HL_NORMAL,row->rsize);
+    memset(row->hl, 0, row->rsize);
     if (E.syntax == NULL) return;
     int i, prev_sep, in_string, in_comment;
     char *p, **keywords = E.syntax->keywords;
@@ -375,7 +358,6 @@ fixcursor:
     E.cx = E.coloff = 0;
 }
 
-/* Delete the char at the current prompt position. */
 void editorDelChar() {
     int filerow = E.rowoff+E.cy;
     int filecol = E.coloff+E.cx;
@@ -453,8 +435,6 @@ struct abuf {
     int len;
 };
 
-#define ABUF_INIT {NULL,0}
-
 void abAppend(struct abuf *ab, const char *s, int len) {
     char *new = realloc(ab->b,ab->len+len);
     if (new == NULL) return;
@@ -467,7 +447,7 @@ void editorRefreshScreen(void) {
     int y;
     erow *r;
     char buf[32];
-    struct abuf ab = ABUF_INIT;
+    struct abuf ab = {NULL, 0};
     abAppend(&ab,"\x1b[?25l",6);
     abAppend(&ab,"\x1b[H",3);
     for (y = 0; y < E.screenrows; y++) {
@@ -476,7 +456,7 @@ void editorRefreshScreen(void) {
             if (E.numrows == 0 && y == E.screenrows/3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome,sizeof(welcome),
-                    "programa81 text editor\x1b[0K\r\n");
+                    "Editor de texto programa81 por PAF, CHG, MJPM y JJSE\x1b[0K\r\n");
                 int padding = (E.screencols-welcomelen)/2;
                 if (padding) {
                     abAppend(&ab,"~",1);
