@@ -415,12 +415,12 @@ int editorSave() {
     close(fd);
     free(buf);
     E.dirty = 0;
-    editorSetStatusMessage("%d bytes written on disk", len);
+    editorSetStatusMessage("Se ha guardado el archivo!", len);
     return 0;
 writeerr:
     free(buf);
     if (fd != -1) close(fd);
-    editorSetStatusMessage("Can't save! I/O error: %s",strerror(errno));
+    editorSetStatusMessage("No se pudo guardar! Error: %s",strerror(errno));
     return 1;
 }
 
@@ -472,8 +472,8 @@ void editorRefreshScreen() {
     abAppend(&ab,"\x1b[0K",4);
     abAppend(&ab,"\x1b[7m",4);
     char status[80], rstatus[80];
-    int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-        E.filename, E.numrows, E.dirty ? "(modified)" : "");
+    int len = snprintf(status, sizeof(status), "%.20s - %d lineas %s",
+        E.filename, E.numrows, E.dirty ? "(modificado)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d",E.rowoff+E.cy+1,E.numrows);
     if (len > E.screencols) len = E.screencols;
     abAppend(&ab,status,len);
@@ -573,8 +573,8 @@ void editorProcessKeypress(int fd) {
             break;
         case CTRL_Q:
             if (E.dirty && quit_times) {
-                editorSetStatusMessage("WARNING!!! File has unsaved changes. "
-                    "Press Ctrl-Q %d more times to quit.", quit_times);
+                editorSetStatusMessage("ATENCIÓN!!! El archivo no ha sido guardado. "
+                    "Presiona Ctrl-Q %d veces más si realmente deseas salir.", quit_times);
                 quit_times--;
                 return;
             }
@@ -607,7 +607,7 @@ void editorProcessKeypress(int fd) {
 
 void updateWindowSize() {
     if (getWindowSize(STDIN_FILENO,STDOUT_FILENO,&E.screenrows,&E.screencols) == -1) {
-        perror("Unable to query the screen for size (columns / rows)");
+        perror("No ha sido posible obtener el tamaño de la pantalla (columnas / filas)");
         exit(1);
     }
     E.screenrows -= 2;
@@ -632,11 +632,11 @@ int main(int argc, char **argv) {
     initEditor();
     if (argc == 2) editorOpen(argv[1]);
     else if(argc > 2) {
-        perror("Usage:\nprograma81\nprograma81 filename\n");
+        perror("Uso:\nprograma81\nprograma81 nombredearchivo\n");
         exit(1);
     } else {
         char filename[80], command[94];
-        printf("\nIngresa el nombre del archivo a crear (tamaño maximo 240): ");
+        printf("\nIngresa el nombre del archivo a crear (tamaño maximo 80): ");
         fflush(stdin);
         scanf("%s", filename);
         strcpy(command, "./programa81 ");
