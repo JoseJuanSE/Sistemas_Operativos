@@ -73,14 +73,12 @@ void editorSetStatusMessage(const char *fmt, ...) {
     E.statusmsg_time = time(NULL);
 }
 
-void disableRawMode(int fd) {
+void editorAtExit() {
     if (E.rawmode) {
-        tcsetattr(fd,TCSAFLUSH,&orig_termios);
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
         E.rawmode = 0;
     }
 }
-
-void editorAtExit(void) { disableRawMode(STDIN_FILENO); }
 
 int enableRawMode(int fd) {
     struct termios raw;
@@ -190,7 +188,7 @@ void editorUpdateSyntax(erow *row) {
     memset(row->hl, 0, row->rsize);
     if (E.filename == NULL) return;
     int i, prev_sep, in_string, in_comment;
-    char *p = row->render; // ojo aqui si no corre
+    char *p = row->render;
     i = in_string = in_comment = 0;
     while(*p && isspace(*p)) {
         p++;
@@ -213,7 +211,7 @@ void editorUpdateRow(erow *row) {
     unsigned long long allocsize =
         (unsigned long long) row->size + tabs*8 + nonprint*9 + 1;
     if (allocsize > UINT32_MAX) {
-        printf("Some line of the edited file is too long for the program\n");
+        printf("Alguna línea del archivo editado es muy larga para el programa\n");
         exit(1);
     }
     row->render = malloc(row->size + tabs*8 + nonprint*9 + 1);
@@ -328,7 +326,7 @@ void editorInsertChar(int c) {
     E.dirty++;
 }
 
-void editorInsertNewline(void) {
+void editorInsertNewline() {
     int filerow = E.rowoff+E.cy;
     int filecol = E.coloff+E.cx;
     erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
@@ -390,7 +388,7 @@ int editorOpen(char *filename) {
     memcpy(E.filename,filename,fnlen);
     if (!(fp = fopen(filename,"r"))) {
         if (errno != ENOENT) {
-            perror("Opening file");
+            perror("Abriendo archivo");
             exit(1);
         }
         return 1;
@@ -408,7 +406,7 @@ int editorOpen(char *filename) {
     return 0;
 }
 
-int editorSave(void) {
+int editorSave() {
     int len, fd;
     char *buf = editorRowsToString(&len);
     if (!(fd = open(E.filename, O_RDWR | O_CREAT, 0644))) goto writeerr;
@@ -434,7 +432,7 @@ void abAppend(struct abuf *ab, const char *s, int len) {
     ab->len += len;
 }
 
-void editorRefreshScreen(void) {
+void editorRefreshScreen() {
     int y;
     erow *r;
     char buf[32];
@@ -607,7 +605,7 @@ void editorProcessKeypress(int fd) {
     quit_times = EDITOR_QUIT_TIMES;
 }
 
-void updateWindowSize(void) {
+void updateWindowSize() {
     if (getWindowSize(STDIN_FILENO,STDOUT_FILENO,&E.screenrows,&E.screencols) == -1) {
         perror("Unable to query the screen for size (columns / rows)");
         exit(1);
@@ -622,7 +620,7 @@ void handleSigWinCh(int unused __attribute__((unused))) {
     editorRefreshScreen();
 }
 
-void initEditor(void) {
+void initEditor() {
     E.cx = E.cy =  E.rowoff = E.coloff = E.numrows = E.dirty = 0;
     E.row = NULL;
     E.filename = NULL;
@@ -638,7 +636,7 @@ int main(int argc, char **argv) {
         exit(1);
     } else {
         char filename[80], command[94];
-        printf("\nEnter the name of the file to create (max size 240): ");
+        printf("\nIngresa el nombre del archivo a crear (tamaño maximo 240): ");
         fflush(stdin);
         scanf("%s", filename);
         strcpy(command, "./programa81 ");
@@ -646,8 +644,8 @@ int main(int argc, char **argv) {
         system(command);
         return 0;
     }
-    enableRawMode(STDIN_FILENO); // IMPORTANTE
-    editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
+    enableRawMode(STDIN_FILENO);
+    editorSetStatusMessage("COMANDOS: Ctrl-S = Guardar | Ctrl-Q = Cerrar");
     while(1) {
         editorRefreshScreen();
         editorProcessKeypress(STDIN_FILENO);
