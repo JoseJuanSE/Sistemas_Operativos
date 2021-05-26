@@ -18,11 +18,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-struct editorSyntax {
-    char **filematch, **keywords, singleline_comment_start[2];
-    char multiline_comment_start[3], multiline_comment_end[3];
-    int flags;
-};
+#define EDITOR_QUIT_TIMES 3
 
 typedef struct erow {
     int idx, size, rsize;
@@ -37,7 +33,11 @@ struct editorConfig {
     int dirty;
     char *filename, statusmsg[80];
     time_t statusmsg_time;
-    struct editorSyntax *syntax;
+};
+
+struct abuf {
+    char *b;
+    int len;
 };
 
 enum KEY_ACTION{
@@ -188,13 +188,9 @@ int editorRowHasOpenComment(erow *row) {
 void editorUpdateSyntax(erow *row) {
     row->hl = realloc(row->hl,row->rsize);
     memset(row->hl, 0, row->rsize);
-    if (E.syntax == NULL) return;
+    if (E.filename == NULL) return;
     int i, prev_sep, in_string, in_comment;
-    char *p, **keywords = E.syntax->keywords;
-    char *scs = E.syntax->singleline_comment_start;
-    char *mcs = E.syntax->multiline_comment_start;
-    char *mce = E.syntax->multiline_comment_end;
-    p = row->render;
+    char *p = row->render; // ojo aqui si no corre
     i = in_string = in_comment = 0;
     while(*p && isspace(*p)) {
         p++;
@@ -430,11 +426,6 @@ writeerr:
     return 1;
 }
 
-struct abuf {
-    char *b;
-    int len;
-};
-
 void abAppend(struct abuf *ab, const char *s, int len) {
     char *new = realloc(ab->b,ab->len+len);
     if (new == NULL) return;
@@ -467,7 +458,6 @@ void editorRefreshScreen(void) {
             } else abAppend(&ab,"~\x1b[0K\r\n",7);
             continue;
         }
-
         r = &E.row[filerow];
         int len = r->rsize - E.coloff;
         if (len > 0) {
@@ -574,7 +564,6 @@ void editorMoveCursor(int key) {
     }
 }
 
-#define EDITOR_QUIT_TIMES 3
 void editorProcessKeypress(int fd) {
     static int quit_times = EDITOR_QUIT_TIMES;
     int c = editorReadKey(fd);
@@ -637,7 +626,6 @@ void initEditor(void) {
     E.cx = E.cy =  E.rowoff = E.coloff = E.numrows = E.dirty = 0;
     E.row = NULL;
     E.filename = NULL;
-    E.syntax = NULL;
     updateWindowSize();
     signal(SIGWINCH, handleSigWinCh);
 }
